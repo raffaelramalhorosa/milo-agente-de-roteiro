@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gerador de Roteiros</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 18px;
+      line-height: 1.6;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      padding: 28px 16px 80px;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; }
+
+    h1 { font-size: 30px; margin-bottom: 6px; }
+    .subtitulo { color: #666; margin-bottom: 36px; font-size: 17px; }
+
+    /* Botões */
+    .btn {
+      font-size: 18px;
+      padding: 14px 28px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primario { background: #4a4ab7; color: white; }
+    .btn-aprovar  { background: #2e7d32; color: white; }
+    .btn-recusar  { background: #b71c1c; color: white; }
+    .btn-confirmar { background: #333; color: white; margin-top: 20px; }
+
+    /* Spinner */
+    .spinner-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 56px 0;
+    }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 5px solid #ddd;
+      border-top-color: #4a4ab7;
+      border-radius: 50%;
+      animation: girar 0.8s linear infinite;
+    }
+    @keyframes girar { to { transform: rotate(360deg); } }
+    .spinner-texto { font-size: 20px; color: #555; font-weight: 500; }
+
+    /* Cards de tema */
+    .instrucao { color: #555; margin-bottom: 16px; }
+    .cards-area { display: flex; flex-direction: column; gap: 14px; }
+    .card-tema {
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      padding: 20px 24px;
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .card-tema:hover {
+      border-color: #4a4ab7;
+      box-shadow: 0 2px 12px rgba(74, 74, 183, 0.18);
+    }
+    .card-titulo { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .card-resumo { color: #555; font-size: 17px; }
+
+    /* Roteiro */
+    .tema-label { color: #555; margin-bottom: 12px; }
+    .roteiro-box {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 24px;
+      white-space: pre-wrap;
+      font-size: 17px;
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+    .botoes-decisao { display: flex; gap: 16px; flex-wrap: wrap; }
+
+    /* Feedback */
+    .feedback-titulo { font-size: 22px; font-weight: 700; margin-bottom: 18px; }
+    .opcoes-feedback { display: flex; flex-direction: column; gap: 10px; }
+    .opcao-feedback {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: white;
+      border: 2px solid #ddd;
+      transition: border-color 0.15s;
+      user-select: none;
+    }
+    .opcao-feedback:has(input:checked) { border-color: #4a4ab7; background: #f0f0fb; }
+    .opcao-feedback input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; flex-shrink: 0; }
+    .campo-outro {
+      margin-top: 10px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 2px solid #ddd;
+      font-size: 17px;
+      width: 100%;
+      font-family: inherit;
+    }
+    .campo-outro:focus { outline: none; border-color: #4a4ab7; }
+
+    /* Status */
+    .status-msg {
+      font-size: 22px;
+      font-weight: 700;
+      padding: 28px 0 16px;
+    }
+    .status-ok     { color: #2e7d32; }
+    .status-recusado { color: #b71c1c; }
+
+    /* Histórico */
+    .secao-historico {
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 2px solid #ddd;
+    }
+    .historico-titulo { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+    .historico-vazio  { color: #999; }
+    .item-historico {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .item-historico:hover {
+      border-color: #4a4ab7;
+      box-shadow: 0 2px 10px rgba(74, 74, 183, 0.15);
+    }
+    .item-ver { font-size: 13px; color: #4a4ab7; margin-top: 6px; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+    .modal {
+      background: white;
+      border-radius: 14px;
+      padding: 28px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .modal-tema { font-size: 20px; font-weight: 700; margin-bottom: 16px; padding-right: 36px; }
+    .modal-roteiro {
+      white-space: pre-wrap;
+      font-size: 17px;
+      line-height: 1.8;
+      color: #1a1a1a;
+    }
+    .modal-fechar {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #888;
+      line-height: 1;
+      padding: 4px;
+    }
+    .modal-fechar:hover { color: #333; }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .item-tema   { font-weight: 700; font-size: 17px; }
+    .badge {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge-aprovado { background: #e8f5e9; color: #2e7d32; }
+    .badge-recusado { background: #ffebee; color: #b71c1c; }
+    .item-motivos { font-size: 15px; color: #666; }
+    .item-data    { font-size: 13px; color: #aaa; margin-top: 4px; }
+
+    .escondido { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gerador de Roteiros</h1>
+    <p class="subtitulo">Para vídeos curtos do Instagram</p>
+
+    <!-- ESTADO: inicial -->
+    <div id="estado-inicial">
+      <button class="btn btn-primario" onclick="sugerirTemas()">Sugerir temas</button>
+    </div>
+
+    <!-- ESTADO: carregando temas -->
+    <div id="estado-carregando-temas" class="escondido">
+      <div class="spinner-area">
+        <div class="spinner"></div>
+        <p class="spinner-texto" id="texto-spinner-temas">Procurando temas...</p>
+      </div>
+    </div>
+
+    <!-- ESTADO: escolher tema -->
+    <div id="estado-temas" class="escondido">
+      <p class="instrucao">Escolha um tema para gerar o roteiro:</p>
+      <div class="cards-area" id="lista-temas"></div>
+    </div>
+
+    <!-- ESTADO: carregando roteiro -->
+    <div id="estado-carregando-roteiro" class="escondido">
+      <div class="spinner-area">
+        <div class="spinner"></div>
+        <p class="spinner-texto" id="texto-spinner-roteiro">Escrevendo roteiro...</p>
+      </div>
+    </div>
+
+    <!-- ESTADO: ver roteiro -->
+    <div id="estado-roteiro" class="escondido">
+      <p class="tema-label">Tema: <strong id="tema-escolhido-label"></strong></p>
+      <div class="roteiro-box" id="roteiro-texto"></div>
+      <div class="botoes-decisao">
+        <button class="btn btn-aprovar" onclick="mostrarFeedback(true)">👍 Aprovar</button>
+        <button class="btn btn-recusar" onclick="mostrarFeedback(false)">👎 Recusar</button>
+      </div>
+    </div>
+
+    <!-- ESTADO: feedback -->
+    <div id="estado-feedback" class="escondido">
+      <p class="feedback-titulo" id="feedback-titulo"></p>
+      <div class="opcoes-feedback" id="lista-opcoes"></div>
+      <input type="text" class="campo-outro" id="campo-outro" placeholder="Outro motivo (opcional)">
+      <br>
+      <button class="btn btn-confirmar" onclick="confirmarDecisao()">Confirmar</button>
+    </div>
+
+    <!-- ESTADO: confirmado -->
+    <div id="estado-confirmado" class="escondido">
+      <p class="status-msg" id="mensagem-status"></p>
+      <button class="btn btn-primario" onclick="reiniciar()">Gerar novo roteiro</button>
+    </div>
+
+    <!-- MODAL de roteiro do histórico -->
+    <div id="modal-overlay" class="modal-overlay escondido" onclick="fecharModal(event)">
+      <div class="modal">
+        <button class="modal-fechar" onclick="fecharModal()">✕</button>
+        <p class="modal-tema" id="modal-tema"></p>
+        <p class="modal-roteiro" id="modal-roteiro"></p>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO (sempre visível) -->
+    <div class="secao-historico">
+      <p class="historico-titulo">Histórico</p>
+      <div id="lista-historico">
+        <p class="historico-vazio">Nenhum roteiro gerado ainda.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let historicoAtual = [];
+    let temaSelecionado = { titulo: "", resumo: "" };
+    let roteiroAtual = "";
+    let decisaoAtual = null;
+    let intervaloSpinner = null;
+
+    const OPCOES_APROVADO = [
+      "Tema ótimo",
+      "Tom de voz perfeito",
+      "Tamanho ideal",
+      "Início que prende",
+    ];
+    const OPCOES_RECUSADO = [
+      "Tema não combina",
+      "Tom de voz errado",
+      "Muito longo ou curto",
+      "Início não prende",
+    ];
+    const TEXTOS_TEMAS = [
+      "Procurando temas...",
+      "Pesquisando na web...",
+      "Filtrando os melhores...",
+      "Quase lá...",
+    ];
+    const TEXTOS_ROTEIRO = [
+      "Escrevendo roteiro...",
+      "Criando o gancho...",
+      "Desenvolvendo a história...",
+      "Quase pronto...",
+    ];
+
+    const TODOS_ESTADOS = [
+      "estado-inicial",
+      "estado-carregando-temas",
+      "estado-temas",
+      "estado-carregando-roteiro",
+      "estado-roteiro",
+      "estado-feedback",
+      "estado-confirmado",
+    ];
+
+    function mostrarEstado(id) {
+      TODOS_ESTADOS.forEach(e => document.getElementById(e).classList.add("escondido"));
+      document.getElementById(id).classList.remove("escondido");
+    }
+
+    function iniciarSpinner(elementoId, textos) {
+      let i = 0;
+      intervaloSpinner = setInterval(() => {
+        i = (i + 1) % textos.length;
+        document.getElementById(elementoId).textContent = textos[i];
+      }, 3000);
+    }
+
+    function pararSpinner() {
+      clearInterval(intervaloSpinner);
+      intervaloSpinner = null;
+    }
+
+    async function sugerirTemas() {
+      mostrarEstado("estado-carregando-temas");
+      iniciarSpinner("texto-spinner-temas", TEXTOS_TEMAS);
+
+      try {
+        const resp = await fetch("/sugerir-temas", { method: "POST" });
+        const dados = await resp.json();
+        pararSpinner();
+        renderizarCards(dados.temas);
+        mostrarEstado("estado-temas");
+      } catch {
+        pararSpinner();
+        alert("Erro ao buscar temas. Tente novamente.");
+        mostrarEstado("estado-inicial");
+      }
+    }
+
+    function renderizarCards(temas) {
+      const lista = document.getElementById("lista-temas");
+      lista.innerHTML = "";
+      temas.forEach(tema => {
+        const btn = document.createElement("button");
+        btn.className = "card-tema";
+        btn.innerHTML = `<p class="card-titulo">${tema.titulo}</p><p class="card-resumo">${tema.resumo}</p>`;
+        btn.onclick = () => escolherTema(tema);
+        lista.appendChild(btn);
+      });
+    }
+
+    async function escolherTema(tema) {
+      temaSelecionado = tema;
+      mostrarEstado("estado-carregando-roteiro");
+      iniciarSpinner("texto-spinner-roteiro", TEXTOS_ROTEIRO);
+
+      try {
+        const resp = await fetch("/gerar-roteiro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ titulo: tema.titulo, resumo: tema.resumo }),
+        });
+        const dados = await resp.json();
+        pararSpinner();
+        roteiroAtual = dados.roteiro;
+        document.getElementById("tema-escolhido-label").textContent = tema.titulo;
+        document.getElementById("roteiro-texto").textContent = roteiroAtual;
+        mostrarEstado("estado-roteiro");
+      } catch {
+        pararSpinner();
+        alert("Erro ao gerar roteiro. Tente novamente.");
+        mostrarEstado("estado-temas");
+      }
+    }
+
+    function mostrarFeedback(aprovado) {
+      decisaoAtual = aprovado;
+      const opcoes = aprovado ? OPCOES_APROVADO : OPCOES_RECUSADO;
+      document.getElementById("feedback-titulo").textContent = aprovado
+        ? "👍 O que você gostou?"
+        : "👎 O que não funcionou?";
+
+      const lista = document.getElementById("lista-opcoes");
+      lista.innerHTML = "";
+      opcoes.forEach(opcao => {
+        const label = document.createElement("label");
+        label.className = "opcao-feedback";
+        label.innerHTML = `<input type="checkbox" value="${opcao}"> ${opcao}`;
+        lista.appendChild(label);
+      });
+
+      document.getElementById("campo-outro").value = "";
+      mostrarEstado("estado-feedback");
+    }
+
+    async function confirmarDecisao() {
+      const marcados = document.querySelectorAll("#lista-opcoes input:checked");
+      const motivos = Array.from(marcados).map(c => c.value);
+      const motivoOutro = document.getElementById("campo-outro").value.trim();
+
+      await fetch("/decidir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tema: temaSelecionado.titulo,
+          resumo_tema: temaSelecionado.resumo,
+          roteiro: roteiroAtual,
+          aprovado: decisaoAtual,
+          motivos,
+          motivo_outro: motivoOutro,
+        }),
+      });
+
+      const msg = document.getElementById("mensagem-status");
+      if (decisaoAtual) {
+        msg.textContent = "✓ Roteiro aprovado e salvo!";
+        msg.className = "status-msg status-ok";
+      } else {
+        msg.textContent = "✗ Roteiro recusado e registrado.";
+        msg.className = "status-msg status-recusado";
+      }
+
+      mostrarEstado("estado-confirmado");
+      carregarHistorico();
+    }
+
+    function reiniciar() {
+      mostrarEstado("estado-inicial");
+    }
+
+    async function carregarHistorico() {
+      const resp = await fetch("/historico");
+      const historico = await resp.json();
+      const lista = document.getElementById("lista-historico");
+
+      if (historico.length === 0) {
+        lista.innerHTML = '<p class="historico-vazio">Nenhum roteiro gerado ainda.</p>';
+        return;
+      }
+
+      // Inverte para exibir mais recente primeiro, mas mantém o índice original
+      historicoAtual = historico;
+      const itens = [...historico].reverse();
+      lista.innerHTML = itens.map((e, i) => {
+        const indiceOriginal = historico.length - 1 - i;
+        const badge = e.decisao === "aprovado"
+          ? '<span class="badge badge-aprovado">👍 Aprovado</span>'
+          : '<span class="badge badge-recusado">👎 Recusado</span>';
+        const todosMotivos = [...(e.motivos || [])];
+        if (e.motivo_outro) todosMotivos.push(e.motivo_outro);
+        const motivosTexto = todosMotivos.length
+          ? todosMotivos.join(" · ")
+          : "Sem motivos registrados";
+        const data = new Date(e.data).toLocaleString("pt-BR");
+        return `
+          <div class="item-historico" onclick="abrirModal(${indiceOriginal})">
+            <div class="item-header">
+              <span class="item-tema">${e.tema}</span>
+              ${badge}
+            </div>
+            <p class="item-motivos">${motivosTexto}</p>
+            <p class="item-data">${data}</p>
+            <p class="item-ver">Ver roteiro completo →</p>
+          </div>`;
+      }).join("");
+    }
+
+    function abrirModal(indice) {
+      const entrada = historicoAtual[indice];
+      document.getElementById("modal-tema").textContent = entrada.tema;
+      document.getElementById("modal-roteiro").textContent = entrada.roteiro;
+      document.getElementById("modal-overlay").classList.remove("escondido");
+      document.body.style.overflow = "hidden";
+    }
+
+    function fecharModal(event) {
+      // Fecha ao clicar no overlay ou no botão ✕; não fecha ao clicar dentro do modal
+      if (event && event.target !== document.getElementById("modal-overlay")) return;
+      document.getElementById("modal-overlay").classList.add("escondido");
+      document.body.style.overflow = "";
+    }
+
+    // Fecha com Escape
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") fecharModal();
+    });
+
+    carregarHistorico();
+  </script>
+</body>
+</html>

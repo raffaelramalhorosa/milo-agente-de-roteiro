@@ -1,0 +1,21 @@
+# Dependências
+frontend/node_modules/
+
+# Build
+frontend/dist/
+frontend/.vite/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Dados de runtime (histórico do usuário)
+historico.json
+
+# Ambiente
+.env
+.env.*

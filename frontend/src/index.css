@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-zinc-950 text-zinc-100;
+  }
+
+  /* Scrollbar global — Chrome/Edge/Safari */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #09090b; /* zinc-950 */
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #3f3f46; /* zinc-700 */
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4f8ef7; /* accent */
+  }
+
+  /* Scrollbar global — Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3f3f46 #09090b;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply text-base px-6 py-3 rounded-md font-semibold transition-colors cursor-pointer border-none tracking-wide;
+  }
+  /* bg-accent não funciona com @apply em Tailwind v3 — usa CSS direto */
+  .btn-primary {
+    @apply btn text-white;
+    background-color: #4f8ef7;
+  }
+  .btn-primary:hover { background-color: #3a7de8; }
+
+  .btn-approve  { @apply btn bg-emerald-700 text-white hover:bg-emerald-600; }
+  .btn-reject   { @apply btn bg-rose-800   text-white hover:bg-rose-700; }
+  .btn-confirm  { @apply btn bg-zinc-700   text-white hover:bg-zinc-600 mt-5; }
+
+  .card {
+    @apply bg-zinc-900 border border-zinc-800 rounded-lg;
+  }
+}
