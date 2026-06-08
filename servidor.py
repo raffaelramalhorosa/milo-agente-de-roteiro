@@ -67,6 +67,33 @@ def rota_decidir():
     return jsonify({"status": "ok"})
 
 
+@app.route("/votar-tema", methods=["POST"])
+def rota_votar_tema():
+    dados = request.get_json()
+    titulo = dados.get("titulo", "")
+    resumo = dados.get("resumo", "")
+    voto   = dados.get("voto", "")
+
+    if voto not in ("bom", "ruim"):
+        return jsonify({"erro": "voto inválido"}), 400
+
+    entrada = f"- **{titulo}**: {resumo}"
+    secao   = "## ✅ Temas aprovados" if voto == "bom" else "## ❌ Temas a evitar"
+
+    try:
+        with open("preferencias_temas.md", "r", encoding="utf-8") as f:
+            conteudo = f.read()
+    except FileNotFoundError:
+        conteudo = "# Preferências de temas\n\n## ✅ Temas aprovados\n\n## ❌ Temas a evitar\n"
+
+    conteudo = conteudo.replace(secao + "\n", secao + "\n" + entrada + "\n")
+
+    with open("preferencias_temas.md", "w", encoding="utf-8") as f:
+        f.write(conteudo)
+
+    return jsonify({"status": "ok"})
+
+
 @app.route("/historico", methods=["GET"])
 def rota_historico():
     return jsonify(ler_historico())

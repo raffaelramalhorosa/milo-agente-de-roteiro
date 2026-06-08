@@ -69,7 +69,8 @@ def _montar_exemplos_feedback():
 def sugerir_temas(contexto_temas=None):
     """Busca na web e retorna lista de 3 temas como objetos {titulo, resumo}."""
     tipos_de_conteudo = contexto_temas or ler_arquivo("tipos_de_conteudo.md")
-    historias_usadas = ler_arquivo("historias_coletadas.md")
+    historias_usadas  = ler_arquivo("historias_coletadas.md")
+    preferencias      = ler_arquivo("preferencias_temas.md")
 
     system_prompt = f"""Você é um agente que sugere temas para vídeos curtos de Instagram.
 
@@ -78,6 +79,9 @@ TIPOS DE CONTEÚDO desejados:
 
 TEMAS JÁ USADOS (não repita nenhum destes):
 {historias_usadas}
+
+PREFERÊNCIAS APRENDIDAS (use para calibrar o estilo dos temas):
+{preferencias}
 
 TAREFA:
 1. Use a busca na web para encontrar 3 histórias ou temas recentes e interessantes que combinam com os tipos de conteúdo acima.
