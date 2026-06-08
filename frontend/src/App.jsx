@@ -10,14 +10,14 @@ import ErrorToast from './components/ErrorToast'
 
 const ERROS = {
   semConexao:   'Não foi possível conectar ao servidor. Verifique se ele está rodando.',
-  rateLimit:    'O agente está sobrecarregado. Aguarde alguns segundos e tente de novo.',
-  buscarTemas:  'O agente não conseguiu buscar temas. Tente novamente.',
-  gerarRoteiro: 'O agente não conseguiu escrever o roteiro. Tente novamente.',
+  rateLimit:    'O Milo está sobrecarregado. Aguarde alguns segundos e tente de novo.',
+  buscarTemas:  'O Milo não conseguiu buscar temas. Tente novamente.',
+  gerarRoteiro: 'O Milo não conseguiu escrever o roteiro. Tente novamente.',
   salvarDecisao:'Não foi possível salvar sua decisão. Tente novamente.',
 }
 
-const TEXTOS_TEMAS   = ['Procurando temas...', 'Pesquisando na web...', 'Filtrando os melhores...', 'Quase lá...']
-const TEXTOS_ROTEIRO = ['Escrevendo roteiro...', 'Criando o gancho...', 'Desenvolvendo a história...', 'Quase pronto...']
+const TEXTOS_TEMAS   = ['Milo está pesquisando...', 'Buscando na web...', 'Filtrando os melhores...', 'Quase lá...']
+const TEXTOS_ROTEIRO = ['Milo está escrevendo...', 'Criando o gancho...', 'Desenvolvendo a história...', 'Quase pronto...']
 
 function carregarContextoSalvo() {
   return {
@@ -136,16 +136,17 @@ export default function App() {
         {/* Header */}
         <div className="flex items-start justify-between mb-10">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-100">
-              Gerador de Roteiros
-            </h1>
-            <p className="text-zinc-500 mt-1 text-sm">Para vídeos curtos do Instagram</p>
+            <div className="flex items-center gap-3">
+              <img src="/milo_logo.png" alt="Milo" className="h-11 w-auto rounded-xl" />
+              <h1 className="text-3xl font-bold tracking-tight text-zinc-100">Milo</h1>
+            </div>
+            <p className="text-zinc-500 mt-1 text-sm">Gerador de roteiros para vídeos curtos</p>
           </div>
           <button
             onClick={() => setMenu(true)}
             className="mt-1 p-2 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800
                        rounded-md transition-colors text-xl leading-none"
-            title="Personalizar agente"
+            title="Personalizar o Milo"
           >
             ☰
           </button>

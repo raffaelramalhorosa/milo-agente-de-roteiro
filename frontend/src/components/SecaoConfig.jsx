@@ -140,7 +140,7 @@ export default function SecaoConfig({ titulo, descricao, placeholder, valor, onC
 
       {!valor && (
         <p className="text-xs text-zinc-600">
-          Vazio → agente usa o arquivo local correspondente.
+          Vazio → Milo usa o arquivo padrão do servidor.
         </p>
       )}
     </div>

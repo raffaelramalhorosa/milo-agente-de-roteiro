@@ -204,7 +204,7 @@ export default function AbaOQueSei({ contexto, onAtualizar, historico }) {
         <SecaoEditavel
           titulo="Estrutura do roteiro"
           fonte={fonteAtiva('roteiro')}
-          conteudo={conteudoAtivo('roteiro', null) || '(usando estrutura padrão do agente)'}
+          conteudo={conteudoAtivo('roteiro', null) || '(usando estrutura padrão do Milo)'}
           onSalvar={v => salvarConfig('roteiro', v)}
         />
         <SecaoEditavel
@@ -233,7 +233,7 @@ export default function AbaOQueSei({ contexto, onAtualizar, historico }) {
           </div>
         </div>
         <p className="text-xs text-zinc-600 mb-3">
-          Temas que o agente já abordou. Ele lê essa lista para não repetir assuntos.
+          Temas que o Milo já abordou. Ele lê essa lista para não repetir assuntos.
         </p>
 
         {editandoHistorias ? (
@@ -289,7 +289,7 @@ export default function AbaOQueSei({ contexto, onAtualizar, historico }) {
 
         {padroes.totalAprovados === 0 && padroes.totalRecusados === 0 ? (
           <p className="text-xs text-zinc-600">
-            Nenhum feedback registrado ainda. Gere e avalie roteiros para o agente aprender.
+            Nenhum feedback registrado ainda. Gere e avalie roteiros para o Milo aprender.
           </p>
         ) : (
           <>

@@ -134,7 +134,7 @@ export default function PainelConfig({ contexto, onAtualizar, onFechar, historic
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
           <div>
-            <h2 className="text-base font-bold text-zinc-100">Personalizar agente</h2>
+            <h2 className="text-base font-bold text-zinc-100">Personalizar o Milo</h2>
             <p className="text-xs text-zinc-500 mt-0.5">Salvo automaticamente no navegador</p>
           </div>
           <button
