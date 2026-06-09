@@ -165,7 +165,7 @@ export default function AbaOQueSei({ contexto, onAtualizar, historico }) {
   const padroes = calcularPadroes(historico)
 
   const AREAS = [
-    { chave: 'temas',   chaveServidor: 'tipos_de_conteudo', titulo: 'Temas que busco' },
+    { chave: 'temas',   chaveServidor: 'editoria', titulo: 'Temas que busco' },
     { chave: 'roteiro', chaveServidor: 'estilo_de_fala',    titulo: 'Como estruturo roteiros' },
     { chave: 'jargoes', chaveServidor: 'estilo_de_fala',    titulo: 'Como falo' },
   ]
@@ -173,7 +173,7 @@ export default function AbaOQueSei({ contexto, onAtualizar, historico }) {
   // Corrijo o mapeamento: roteiro usa estrutura_roteiro que não existe no servidor,
   // então para roteiro o servidor fallback é vazio
   const MAPA_SERVIDOR = {
-    temas:   'tipos_de_conteudo',
+    temas:   'editoria',
     roteiro: null,          // sem arquivo padrão no servidor para estrutura
     jargoes: 'estilo_de_fala',
   }
@@ -198,7 +198,7 @@ export default function AbaOQueSei({ contexto, onAtualizar, historico }) {
         <SecaoEditavel
           titulo="Temas que busco"
           fonte={fonteAtiva('temas')}
-          conteudo={conteudoAtivo('temas', 'tipos_de_conteudo')}
+          conteudo={conteudoAtivo('temas', 'editoria')}
           onSalvar={v => salvarConfig('temas', v)}
         />
         <SecaoEditavel

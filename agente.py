@@ -68,9 +68,11 @@ def _montar_exemplos_feedback():
 
 def sugerir_temas(contexto_temas=None):
     """Busca na web e retorna lista de 3 temas como objetos {titulo, resumo}."""
-    tipos_de_conteudo = contexto_temas or ler_arquivo("tipos_de_conteudo.md")
-    historias_usadas  = ler_arquivo("historias_coletadas.md")
-    preferencias      = ler_arquivo("preferencias_temas.md")
+    tipos_de_conteudo    = contexto_temas or ler_arquivo("rawData/editoria_historias_americanas.md")
+    historias_usadas     = ler_arquivo("rawData/historias_coletadas.md")
+    sugestoes_salvas     = ler_arquivo("rawData/sugestoes_salvas.md")
+    sugestoes_descartadas = ler_arquivo("rawData/sugestoes_descartadas.md")
+    preferencias         = ler_arquivo("preferencias_temas.md")
 
     system_prompt = f"""Você é um agente que sugere temas para vídeos curtos de Instagram.
 
@@ -79,6 +81,12 @@ TIPOS DE CONTEÚDO desejados:
 
 TEMAS JÁ USADOS (não repita nenhum destes):
 {historias_usadas}
+
+SUGESTÕES JÁ VISTAS — SALVAS PARA DEPOIS (não repita):
+{sugestoes_salvas}
+
+SUGESTÕES REJEITADAS PELO USUÁRIO (nunca sugira):
+{sugestoes_descartadas}
 
 PREFERÊNCIAS APRENDIDAS (use para calibrar o estilo dos temas):
 {preferencias}
@@ -118,8 +126,8 @@ TAREFA:
 
 def escrever_roteiro(tema, resumo_tema, contexto_jargoes=None, contexto_roteiro=None):
     """Escreve o roteiro completo para o tema escolhido, realimentado pelo histórico."""
-    estilo_de_fala = contexto_jargoes or ler_arquivo("estilo_de_fala.md")
-    estrutura      = contexto_roteiro or "Estrutura obrigatória: gancho inicial → história/conteúdo → virada → call to action."
+    estilo_de_fala = contexto_jargoes or ler_arquivo("rawData/estilo_de_fala.md")
+    estrutura      = contexto_roteiro or ler_arquivo("rawData/estrutura_roteiro.md")
     exemplos_feedback = _montar_exemplos_feedback()
 
     system_prompt = f"""Você é um agente que escreve roteiros para vídeos curtos de Instagram.

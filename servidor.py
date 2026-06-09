@@ -61,10 +61,46 @@ def rota_decidir():
     salvar_historico(entrada)
 
     if aprovado:
-        with open("historias_coletadas.md", "a", encoding="utf-8") as f:
+        with open("rawData/historias_coletadas.md", "a", encoding="utf-8") as f:
             f.write(f"\n- {dados['tema']}: {dados.get('resumo_tema', '')}")
 
     return jsonify({"status": "ok"})
+
+
+@app.route("/votar-sugestao", methods=["POST"])
+def rota_votar_sugestao():
+    dados = request.get_json()
+    titulo = dados.get("titulo", "")
+    resumo = dados.get("resumo", "")
+    voto   = dados.get("voto", "")
+
+    if voto not in ("salvar", "descartar"):
+        return jsonify({"erro": "voto inválido"}), 400
+
+    caminho = "rawData/sugestoes_salvas.md" if voto == "salvar" else "rawData/sugestoes_descartadas.md"
+    with open(caminho, "a", encoding="utf-8") as f:
+        f.write(f"- **{titulo}**: {resumo}\n")
+
+    return jsonify({"status": "ok"})
+
+
+@app.route("/sugestoes-salvas", methods=["GET"])
+def rota_sugestoes_salvas():
+    linhas = []
+    try:
+        with open("rawData/sugestoes_salvas.md", "r", encoding="utf-8") as f:
+            for linha in f:
+                linha = linha.strip()
+                if not linha.startswith("- **"):
+                    continue
+                # formato: - **Titulo**: Resumo
+                resto = linha[4:]  # remove "- **"
+                if "**:" in resto:
+                    titulo, resumo = resto.split("**:", 1)
+                    linhas.append({"titulo": titulo.strip(), "resumo": resumo.strip()})
+    except FileNotFoundError:
+        pass
+    return jsonify({"sugestoes": linhas})
 
 
 @app.route("/votar-tema", methods=["POST"])
@@ -103,16 +139,16 @@ def rota_historico():
 def rota_contexto_agente():
     from agente import ler_arquivo
     return jsonify({
-        "tipos_de_conteudo":   ler_arquivo("tipos_de_conteudo.md"),
-        "estilo_de_fala":      ler_arquivo("estilo_de_fala.md"),
-        "historias_coletadas": ler_arquivo("historias_coletadas.md"),
+        "editoria":            ler_arquivo("rawData/editoria_historias_americanas.md"),
+        "estilo_de_fala":      ler_arquivo("rawData/estilo_de_fala.md"),
+        "historias_coletadas": ler_arquivo("rawData/historias_coletadas.md"),
     })
 
 
 @app.route("/contexto-agente/historias", methods=["PUT"])
 def atualizar_historias():
     dados = request.get_json()
-    with open("historias_coletadas.md", "w", encoding="utf-8") as f:
+    with open("rawData/historias_coletadas.md", "w", encoding="utf-8") as f:
         f.write(dados.get("conteudo", "# Histórias já usadas\n(ainda nenhuma)"))
     return jsonify({"status": "ok"})
 
