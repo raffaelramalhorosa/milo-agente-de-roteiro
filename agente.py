@@ -121,17 +121,16 @@ PREFERÊNCIAS APRENDIDAS (use para calibrar o estilo dos temas):
 {preferencias}
 
 TAREFA:
-1. Use a busca na web para encontrar 3 histórias ou temas DIFERENTES E INÉDITOS que combinam com os critérios acima.
+1. Use a busca na web para encontrar 10 histórias ou temas DIFERENTES E INÉDITOS que combinam com os critérios acima.
 2. Para cada tema encontrado, preencha os 4 campos abaixo com precisão:
    - titulo: nome curto da empresa ou história
    - resumo: 3-4 frases com o arco completo — quem é o fundador (origem, contexto pessoal), qual era o problema concreto que ele resolveu, e como começou a empresa
    - sacada: em 1-2 frases, qual foi o momento de virada ou a tática inusitada que mudou o rumo da história
    - numeros: os principais números de crescimento com datas (ex: "De 0 a US$60M em 3 anos. Valuation atual: US$800M.")
-3. Responda APENAS com um array JSON válido, sem nenhum texto antes ou depois, neste formato exato:
+3. Responda APENAS com um array JSON válido com exatamente 10 itens, sem nenhum texto antes ou depois, neste formato exato:
 [
   {{"titulo": "Nome da empresa", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}},
-  {{"titulo": "Nome da empresa", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}},
-  {{"titulo": "Nome da empresa", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}}
+  ...
 ]"""
 
     mensagens = [{"role": "user", "content": "Sugira 3 temas."}]
@@ -139,7 +138,7 @@ TAREFA:
     while True:
         resposta = client.messages.create(
             model=MODELO,
-            max_tokens=2000,
+            max_tokens=4000,
             system=system_prompt,
             messages=mensagens,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
