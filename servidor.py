@@ -19,6 +19,7 @@ def rota_sugerir_temas():
         temas = sugerir_temas(
             editoria=dados.get("editoria", "historias_americanas"),
             contexto_temas=dados.get("contexto_temas") or None,
+            temas_sessao=dados.get("temas_sessao") or None,
         )
         return jsonify({"temas": temas})
     except anthropic.RateLimitError:

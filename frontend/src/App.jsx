@@ -73,8 +73,9 @@ export default function App() {
   }
 
   async function sugerirTemas(forcarNovo = false) {
+    const cacheKey = `${CACHE_TEMAS_KEY}_${editoria}`
     if (!forcarNovo) {
-      const raw = localStorage.getItem(CACHE_TEMAS_KEY)
+      const raw = localStorage.getItem(cacheKey)
       if (raw) {
         try {
           const { temas: cached, ts } = JSON.parse(raw)
@@ -92,7 +93,11 @@ export default function App() {
       const resp  = await fetch('/sugerir-temas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ editoria, contexto_temas: contexto.temas || null }),
+        body: JSON.stringify({
+          editoria,
+          contexto_temas: contexto.temas || null,
+          temas_sessao:   forcarNovo ? temas : null,
+        }),
       })
       const dados = await resp.json()
       if (!resp.ok) {
@@ -101,7 +106,7 @@ export default function App() {
         return
       }
       setTemas(dados.temas)
-      localStorage.setItem(CACHE_TEMAS_KEY, JSON.stringify({ temas: dados.temas, ts: Date.now() }))
+      localStorage.setItem(cacheKey, JSON.stringify({ temas: dados.temas, ts: Date.now() }))
       setTela('temas')
     } catch {
       mostrarErro('semConexao')
@@ -118,7 +123,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           titulo:           tema.titulo,
-          resumo:           tema.resumo,
+          resumo:           [tema.resumo, tema.sacada && `Sacada: ${tema.sacada}`, tema.numeros && `Números: ${tema.numeros}`].filter(Boolean).join('\n\n'),
           editoria,
           contexto_jargoes: contexto.jargoes  || null,
           contexto_roteiro: contexto.roteiro  || null,
@@ -237,13 +242,21 @@ export default function App() {
 
             {tela === 'carregandoTemas'   && <Spinner textos={TEXTOS_TEMAS} />}
             {tela === 'temas'             && (
-              <TemaCards
-                temas={temas}
-                onEscolher={escolherTema}
-                onBuscarNovos={() => sugerirTemas(true)}
-                onSalvar={() => carregarSugestoesSalvas()}
-                onDescartar={() => {}}
-              />
+              <>
+                <button
+                  onClick={() => setTela('inicial')}
+                  className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors mb-5 flex items-center gap-1"
+                >
+                  ← Trocar editoria
+                </button>
+                <TemaCards
+                  temas={temas}
+                  onEscolher={escolherTema}
+                  onBuscarNovos={() => sugerirTemas(true)}
+                  onSalvar={() => carregarSugestoesSalvas()}
+                  onDescartar={() => {}}
+                />
+              </>
             )}
             {tela === 'carregandoRoteiro' && <Spinner textos={TEXTOS_ROTEIRO} />}
 

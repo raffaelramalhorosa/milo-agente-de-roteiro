@@ -85,14 +85,23 @@ def _montar_exemplos_feedback(editoria="historias_americanas"):
     return "\n\n".join(partes) if partes else "(ainda sem histórico de feedback)"
 
 
-def sugerir_temas(editoria="historias_americanas", contexto_temas=None):
-    """Busca na web e retorna lista de 3 temas como objetos {titulo, resumo}."""
+def sugerir_temas(editoria="historias_americanas", contexto_temas=None, temas_sessao=None):
+    """Busca na web e retorna lista de 3 temas como objetos {titulo, resumo, sacada, numeros}."""
     arquivo_editoria  = EDITORIAS.get(editoria, EDITORIAS["historias_americanas"])["arquivo"]
     tipos_de_conteudo = contexto_temas or ler_arquivo(arquivo_editoria)
-    historias_usadas     = ler_arquivo("rawData/historias_coletadas.md")
-    sugestoes_salvas     = ler_arquivo("rawData/sugestoes_salvas.md")
+    historias_usadas      = ler_arquivo("rawData/historias_coletadas.md")
+    sugestoes_salvas      = ler_arquivo("rawData/sugestoes_salvas.md")
     sugestoes_descartadas = ler_arquivo("rawData/sugestoes_descartadas.md")
-    preferencias         = ler_arquivo("preferencias_temas.md")
+    preferencias          = ler_arquivo("preferencias_temas.md")
+
+    # temas mostrados nesta sessão mas ainda não votados
+    secao_sessao = ""
+    if temas_sessao:
+        linhas = [f"- {t['titulo']}: {t.get('resumo', '')}" for t in temas_sessao]
+        secao_sessao = (
+            "\nSUGESTÕES JÁ APRESENTADAS NESTA SESSÃO (não repita nenhuma delas):\n"
+            + "\n".join(linhas)
+        )
 
     system_prompt = f"""Você é um agente que sugere temas para vídeos curtos de Instagram.
 
@@ -107,17 +116,22 @@ SUGESTÕES JÁ VISTAS — SALVAS PARA DEPOIS (não repita):
 
 SUGESTÕES REJEITADAS PELO USUÁRIO (nunca sugira):
 {sugestoes_descartadas}
-
+{secao_sessao}
 PREFERÊNCIAS APRENDIDAS (use para calibrar o estilo dos temas):
 {preferencias}
 
 TAREFA:
-1. Use a busca na web para encontrar 3 histórias ou temas recentes e interessantes que combinam com os tipos de conteúdo acima.
-2. Responda APENAS com um array JSON válido, sem nenhum texto antes ou depois, neste formato exato:
+1. Use a busca na web para encontrar 3 histórias ou temas DIFERENTES E INÉDITOS que combinam com os critérios acima.
+2. Para cada tema encontrado, preencha os 4 campos abaixo com precisão:
+   - titulo: nome curto da empresa ou história
+   - resumo: 3-4 frases com o arco completo — quem é o fundador (origem, contexto pessoal), qual era o problema concreto que ele resolveu, e como começou a empresa
+   - sacada: em 1-2 frases, qual foi o momento de virada ou a tática inusitada que mudou o rumo da história
+   - numeros: os principais números de crescimento com datas (ex: "De 0 a US$60M em 3 anos. Valuation atual: US$800M.")
+3. Responda APENAS com um array JSON válido, sem nenhum texto antes ou depois, neste formato exato:
 [
-  {{"titulo": "Título curto do tema", "resumo": "Uma frase descrevendo a história"}},
-  {{"titulo": "Título curto do tema", "resumo": "Uma frase descrevendo a história"}},
-  {{"titulo": "Título curto do tema", "resumo": "Uma frase descrevendo a história"}}
+  {{"titulo": "Nome da empresa", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}},
+  {{"titulo": "Nome da empresa", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}},
+  {{"titulo": "Nome da empresa", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}}
 ]"""
 
     mensagens = [{"role": "user", "content": "Sugira 3 temas."}]
@@ -125,7 +139,7 @@ TAREFA:
     while True:
         resposta = client.messages.create(
             model=MODELO,
-            max_tokens=1000,
+            max_tokens=2000,
             system=system_prompt,
             messages=mensagens,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],

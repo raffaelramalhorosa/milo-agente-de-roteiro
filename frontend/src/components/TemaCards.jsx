@@ -52,11 +52,19 @@ export default function TemaCards({ temas, onEscolher, onBuscarNovos, onSalvar, 
                 onClick={() => onEscolher(tema)}
                 className="text-left w-full group"
               >
-                <p className="text-base font-semibold text-zinc-100 mb-1
+                <p className="text-base font-semibold text-zinc-100 mb-2
                               group-hover:text-accent transition-colors">
                   {tema.titulo}
                 </p>
-                <p className="text-sm text-zinc-500">{tema.resumo}</p>
+                <p className="text-sm text-zinc-400 leading-relaxed">{tema.resumo}</p>
+                {tema.sacada && (
+                  <p className="text-xs text-amber-500/80 mt-2 leading-relaxed">
+                    ⚡ {tema.sacada}
+                  </p>
+                )}
+                {tema.numeros && (
+                  <p className="text-xs text-zinc-500 mt-1.5 font-mono">{tema.numeros}</p>
+                )}
               </button>
 
               <div className="flex justify-end gap-1.5 mt-3 pt-3 border-t border-zinc-800">
