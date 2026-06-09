@@ -1,12 +1,32 @@
 import anthropic
 import json
+import os
 import re
 from datetime import datetime
 import uuid
+from json_repair import repair_json
+
+def env_var(nome, padrao=None):
+    valor = os.environ.get(nome)
+    if valor:
+        return valor
+
+    if os.name == "nt":
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as chave:
+                valor, _ = winreg.QueryValueEx(chave, nome)
+                return valor or padrao
+        except OSError:
+            pass
+
+    return padrao
+
 
 client = anthropic.Anthropic()
 MODELO = "claude-sonnet-4-6"
 MODELO_LEVE = "claude-haiku-4-5-20251001"  # usado em tarefas sem web search
+MODELO_GEMINI_FACT_CHECK = env_var("GEMINI_FACT_CHECK_MODEL", "gemini-2.5-flash")
 HISTORICO_PATH = "historico.json"
 N_EXEMPLOS = 3  # quantos aceitos/recusados realimentar no prompt
 
@@ -86,7 +106,7 @@ def _montar_exemplos_feedback(editoria="historias_americanas"):
 
 
 def sugerir_temas(editoria="historias_americanas", contexto_temas=None, temas_sessao=None):
-    """Busca na web e retorna lista de 3 temas como objetos {titulo, resumo, sacada, numeros}."""
+    """Busca na web e retorna lista de 10 temas como objetos {titulo, dominio, resumo, sacada, numeros}."""
     arquivo_editoria  = EDITORIAS.get(editoria, EDITORIAS["historias_americanas"])["arquivo"]
     tipos_de_conteudo = contexto_temas or ler_arquivo(arquivo_editoria)
     historias_usadas      = ler_arquivo("rawData/historias_coletadas.md")
@@ -124,12 +144,13 @@ TAREFA:
 1. Use a busca na web para encontrar 10 histórias ou temas DIFERENTES E INÉDITOS que combinam com os critérios acima.
 2. Para cada tema encontrado, preencha os 4 campos abaixo com precisão:
    - titulo: nome curto da empresa ou história
+   - dominio: domínio oficial da empresa ou organização, sem https:// e sem caminho. Se não existir um domínio confiável, use string vazia.
    - resumo: 3-4 frases com o arco completo — quem é o fundador (origem, contexto pessoal), qual era o problema concreto que ele resolveu, e como começou a empresa
    - sacada: em 1-2 frases, qual foi o momento de virada ou a tática inusitada que mudou o rumo da história
    - numeros: os principais números de crescimento com datas (ex: "De 0 a US$60M em 3 anos. Valuation atual: US$800M.")
 3. Responda APENAS com um array JSON válido com exatamente 10 itens, sem nenhum texto antes ou depois, neste formato exato:
 [
-  {{"titulo": "Nome da empresa", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}},
+  {{"titulo": "Nome da empresa", "dominio": "empresa.com", "resumo": "3-4 frases de contexto e arco da história", "sacada": "O momento de virada em 1-2 frases", "numeros": "Números concretos de crescimento"}},
   ...
 ]"""
 
@@ -155,6 +176,241 @@ TAREFA:
     if inicio == -1 or fim == 0:
         raise ValueError(f"Resposta não contém JSON válido: {texto}")
     return json.loads(texto[inicio:fim])
+
+
+def _checar_fatos_anthropic(titulo, resumo="", sacada="", numeros="", dominio="", editoria="historias_americanas"):
+    """Verifica fatos, datas e números de um tema usando web search."""
+    arquivo_editoria = EDITORIAS.get(editoria, EDITORIAS["historias_americanas"])["arquivo"]
+    criterios_editoria = ler_arquivo(arquivo_editoria)
+
+    system_prompt = f"""Você é uma checadora de fatos rigorosa para vídeos curtos lidos por uma pessoa com grande audiência.
+
+EDITORIA:
+{criterios_editoria}
+
+TAREFA:
+Use busca na web para verificar se as informações do tema são verdadeiras, atuais e bem formuladas.
+Priorize fontes primárias, páginas oficiais, comunicados da empresa, documentos regulatórios, bases públicas e veículos jornalísticos confiáveis.
+Verifique especialmente:
+- nomes de fundadores, empresa e produto
+- datas
+- valores, valuation, receita, crescimento, aquisição, falência ou rodada
+- causalidade sugerida pela história
+
+Responda APENAS com um objeto JSON válido neste formato:
+{{
+  "status": "confiavel | atencao | incerto",
+  "resumo": "síntese curta do que foi confirmado ou precisa de ajuste",
+  "pontos": [
+    {{
+      "afirmacao": "afirmação checada",
+      "veredito": "confirmado | ajustar | nao_encontrado",
+      "detalhe": "explicação objetiva, incluindo correção quando necessário"
+    }}
+  ],
+  "fontes": [
+    {{"titulo": "Nome da fonte", "url": "https://..."}}
+  ],
+  "versao_segura": "texto revisado do tema, com linguagem mais precisa e sem exageros"
+}}"""
+
+    contexto = "\n\n".join([
+        f"Título: {titulo}",
+        f"Domínio informado: {dominio or '(não informado)'}",
+        f"Resumo: {resumo or '(não informado)'}",
+        f"Sacada: {sacada or '(não informado)'}",
+        f"Números: {numeros or '(não informado)'}",
+    ])
+
+    mensagens = [{"role": "user", "content": contexto}]
+
+    while True:
+        resposta = client.messages.create(
+            model=MODELO,
+            max_tokens=2500,
+            system=system_prompt,
+            messages=mensagens,
+            tools=[{"type": "web_search_20250305", "name": "web_search"}],
+        )
+        mensagens.append({"role": "assistant", "content": resposta.content})
+        if resposta.stop_reason != "tool_use":
+            break
+
+    texto = "".join(b.text for b in resposta.content if b.type == "text")
+    try:
+        return _extrair_json_objeto(texto)
+    except (json.JSONDecodeError, ValueError):
+        return _checagem_incerta_por_json_invalido()
+
+
+def _extrair_json_objeto(texto):
+    texto = (texto or "").strip()
+    if texto.startswith("```"):
+        texto = re.sub(r"^```(?:json)?\s*", "", texto)
+        texto = re.sub(r"\s*```$", "", texto)
+
+    inicio = texto.find("{")
+    fim = texto.rfind("}") + 1
+    if inicio == -1 or fim == 0:
+        raise ValueError(f"Resposta não contém JSON válido: {texto}")
+
+    fragmento = texto[inicio:fim]
+    try:
+        return json.loads(fragmento)
+    except json.JSONDecodeError as exc:
+        print(f"[_extrair_json_objeto] JSON inválido ({exc}), tentando repair_json")
+        reparado = repair_json(fragmento)
+        print(f"[_extrair_json_objeto] repair_json resultado (100 chars): {reparado[:100]}")
+        return json.loads(reparado)
+
+
+def _reparar_json_gemini(client_gemini, types, texto):
+    resposta = client_gemini.models.generate_content(
+        model=MODELO_GEMINI_FACT_CHECK,
+        contents=(
+            "Reescreva o texto abaixo como um unico objeto JSON valido. "
+            "Nao acrescente explicacoes, markdown ou comentarios. "
+            "Preserve os campos status, resumo, pontos, fontes e versao_segura.\n\n"
+            f"{texto}"
+        ),
+        config=types.GenerateContentConfig(
+            temperature=0,
+            response_mime_type="application/json",
+        ),
+    )
+    return _extrair_json_objeto(resposta.text or "")
+
+
+def _checagem_incerta_por_json_invalido(fontes=None):
+    return {
+        "status": "incerto",
+        "resumo": "A checagem encontrou fontes, mas a resposta voltou em um formato invalido. Tente checar novamente.",
+        "pontos": [
+            {
+                "afirmacao": "Formato da resposta de checagem",
+                "veredito": "nao_encontrado",
+                "detalhe": "O backend evitou retornar erro 500, mas nao conseguiu interpretar o JSON do modelo.",
+            }
+        ],
+        "fontes": fontes or [],
+        "versao_segura": "",
+    }
+
+
+def _fontes_gemini(resposta):
+    fontes = []
+    for candidato in getattr(resposta, "candidates", []) or []:
+        grounding = getattr(candidato, "grounding_metadata", None)
+        chunks = getattr(grounding, "grounding_chunks", None) if grounding else None
+        if not chunks:
+            continue
+        for chunk in chunks:
+            web = getattr(chunk, "web", None)
+            if not web or not getattr(web, "uri", None):
+                continue
+            fonte = {
+                "titulo": getattr(web, "title", "") or web.uri,
+                "url": web.uri,
+            }
+            if fonte not in fontes:
+                fontes.append(fonte)
+    return fontes
+
+
+def _checar_fatos_gemini(titulo, resumo="", sacada="", numeros="", dominio="", editoria="historias_americanas"):
+    try:
+        from google import genai
+        from google.genai import types
+    except ImportError as exc:
+        raise RuntimeError("Instale google-genai para usar FACT_CHECK_PROVIDER=gemini.") from exc
+
+    api_key = env_var("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("Configure GEMINI_API_KEY para usar FACT_CHECK_PROVIDER=gemini.")
+
+    arquivo_editoria = EDITORIAS.get(editoria, EDITORIAS["historias_americanas"])["arquivo"]
+    criterios_editoria = ler_arquivo(arquivo_editoria)
+    system_prompt = f"""Você é uma checadora de fatos rigorosa para vídeos curtos lidos por uma pessoa com grande audiência.
+
+EDITORIA:
+{criterios_editoria}
+
+TAREFA:
+Use Google Search grounding para verificar se as informações do tema são verdadeiras, atuais e bem formuladas.
+Priorize fontes primárias, páginas oficiais, comunicados da empresa, documentos regulatórios, bases públicas e veículos jornalísticos confiáveis.
+Verifique especialmente nomes, datas, valores, valuation, receita, crescimento, aquisição, falência, rodada e causalidade sugerida pela história.
+
+Responda APENAS com um objeto JSON válido neste formato:
+{{
+  "status": "confiavel | atencao | incerto",
+  "resumo": "síntese curta do que foi confirmado ou precisa de ajuste",
+  "pontos": [
+    {{
+      "afirmacao": "afirmação checada",
+      "veredito": "confirmado | ajustar | nao_encontrado",
+      "detalhe": "explicação objetiva, incluindo correção quando necessário"
+    }}
+  ],
+  "fontes": [
+    {{"titulo": "Nome da fonte", "url": "https://..."}}
+  ],
+  "versao_segura": "texto revisado do tema, com linguagem mais precisa e sem exageros"
+}}"""
+    contexto = "\n\n".join([
+        f"Título: {titulo}",
+        f"Domínio informado: {dominio or '(não informado)'}",
+        f"Resumo: {resumo or '(não informado)'}",
+        f"Sacada: {sacada or '(não informado)'}",
+        f"Números: {numeros or '(não informado)'}",
+    ])
+
+    client_gemini = genai.Client(api_key=api_key)
+    config = types.GenerateContentConfig(
+        system_instruction=system_prompt,
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+        temperature=0.1,
+    )
+    resposta = client_gemini.models.generate_content(
+        model=MODELO_GEMINI_FACT_CHECK,
+        contents=contexto,
+        config=config,
+    )
+
+    fontes_grounding = _fontes_gemini(resposta)
+    try:
+        resultado = _extrair_json_objeto(resposta.text or "")
+    except (json.JSONDecodeError, ValueError):
+        try:
+            resultado = _reparar_json_gemini(client_gemini, types, resposta.text or "")
+        except (json.JSONDecodeError, ValueError):
+            return _checagem_incerta_por_json_invalido(fontes_grounding)
+
+    if fontes_grounding and not resultado.get("fontes"):
+        resultado["fontes"] = fontes_grounding
+    return resultado
+
+
+def checar_fatos_tema(titulo, resumo="", sacada="", numeros="", dominio="", editoria="historias_americanas"):
+    """Verifica fatos, datas e números usando o provider configurado."""
+    provider = env_var("FACT_CHECK_PROVIDER", "gemini").lower()
+    print(f"[checar_fatos] provider={provider} titulo={titulo!r}")
+    try:
+        if provider == "gemini":
+            resultado = _checar_fatos_gemini(titulo, resumo, sacada, numeros, dominio, editoria)
+        else:
+            resultado = _checar_fatos_anthropic(titulo, resumo, sacada, numeros, dominio, editoria)
+        print(f"[checar_fatos] status={resultado.get('status')} pontos={len(resultado.get('pontos', []))}")
+        return resultado
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"[checar_fatos] JSONDecodeError/ValueError capturado: {exc}")
+        resultado = _checagem_incerta_por_json_invalido()
+        resultado["resumo"] = f"A checagem retornou um formato invalido: {exc}"
+        return resultado
+    except Exception as exc:
+        print(f"[checar_fatos] exceção inesperada ({type(exc).__name__}): {exc}")
+        resultado = _checagem_incerta_por_json_invalido()
+        resultado["resumo"] = f"Erro inesperado na checagem ({type(exc).__name__}): {exc}"
+        return resultado
 
 
 def escrever_roteiro(tema, resumo_tema, editoria="historias_americanas", contexto_jargoes=None, contexto_roteiro=None):

@@ -31,6 +31,8 @@ O Milo precisa de uma chave da API da Anthropic. Ela deve ser configurada como v
 
 ```powershell
 [System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-sua-chave-aqui", "User")
+[System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "sua-chave-gemini-aqui", "User")
+[System.Environment]::SetEnvironmentVariable("FACT_CHECK_PROVIDER", "gemini", "User")
 ```
 
 Feche e reabra o terminal após executar.
@@ -39,6 +41,8 @@ Feche e reabra o terminal após executar.
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-sua-chave-aqui"
+export GEMINI_API_KEY="sua-chave-gemini-aqui"
+export FACT_CHECK_PROVIDER="gemini"
 ```
 
 Para tornar permanente, adicione a linha acima ao `~/.bashrc` ou `~/.zshrc`.
@@ -57,7 +61,7 @@ cd milo-agente-de-roteiro
 **2. Instale as dependências Python:**
 
 ```bash
-pip install flask anthropic
+pip install -r requirements.txt
 ```
 
 **3. Instale as dependências do frontend:**

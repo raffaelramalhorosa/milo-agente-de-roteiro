@@ -14,7 +14,7 @@ ex-executivo de Wall Street com fortuna pessoal.
 ## ✅ Critério SIM (pode virar roteiro)
 - Empresa estrangeira, majoritariamente dos EUA
 - Empresa com até ~10 anos
-- Bootstrap, ou VC só pra escalar (NUNCA pra começar)
+- Bootstrap, ou Venture Capital só pra escalar (NUNCA pra começar)
 - Origem do dinheiro: poupança, cartão de crédito, FFF (family/friends/fools),
   Kickstarter, 401k
 - Fundador é pessoa comum (não hipertécnico)

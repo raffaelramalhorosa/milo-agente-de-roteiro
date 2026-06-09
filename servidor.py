@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import uuid
 from datetime import datetime
 import anthropic
-from agente import sugerir_temas, escrever_roteiro, ler_historico, salvar_historico
+from agente import sugerir_temas, escrever_roteiro, checar_fatos_tema, ler_historico, salvar_historico
 
 app = Flask(__name__)
 
@@ -44,6 +44,37 @@ def rota_gerar_roteiro():
         return jsonify({"erro": "Rate limit atingido."}), 429
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+
+
+@app.route("/checar-fatos", methods=["POST"])
+def rota_checar_fatos():
+    dados = request.get_json(silent=True) or {}
+    try:
+        resultado = checar_fatos_tema(
+            titulo=dados.get("titulo", ""),
+            resumo=dados.get("resumo", ""),
+            sacada=dados.get("sacada", ""),
+            numeros=dados.get("numeros", ""),
+            dominio=dados.get("dominio", ""),
+            editoria=dados.get("editoria", "historias_americanas"),
+        )
+        return jsonify(resultado)
+    except anthropic.RateLimitError:
+        return jsonify({"erro": "Rate limit atingido."}), 429
+    except Exception as e:
+        return jsonify({
+            "status": "incerto",
+            "resumo": f"NÃ£o foi possÃ­vel concluir a checagem automaticamente: {e}",
+            "pontos": [
+                {
+                    "afirmacao": "ExecuÃ§Ã£o da checagem",
+                    "veredito": "nao_encontrado",
+                    "detalhe": "A resposta do provedor nÃ£o pÃ´de ser convertida em um resultado estruturado.",
+                }
+            ],
+            "fontes": [],
+            "versao_segura": "",
+        })
 
 
 @app.route("/decidir", methods=["POST"])

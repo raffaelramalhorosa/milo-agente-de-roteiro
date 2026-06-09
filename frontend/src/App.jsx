@@ -26,7 +26,7 @@ const ERROS = {
 const TEXTOS_TEMAS   = ['Milo está pesquisando...', 'Buscando na web...', 'Filtrando os melhores...', 'Quase lá...']
 const TEXTOS_ROTEIRO = ['Milo está escrevendo...', 'Criando o gancho...', 'Desenvolvendo a história...', 'Quase pronto...']
 
-const CACHE_TEMAS_KEY = 'vsg_temas_cache'
+const CACHE_TEMAS_KEY = 'vsg_temas_cache_v2'
 const CACHE_TEMAS_TTL = 60 * 60 * 1000 // 1 hora
 
 function carregarContextoSalvo() {
@@ -50,6 +50,7 @@ export default function App() {
   const [contexto, setContexto]     = useState(carregarContextoSalvo)
   const [sugestoesSalvas, setSalvas] = useState([])
   const [editoria, setEditoria]     = useState(null)
+  const [checagens, setChecagens]   = useState({})
   const [erro, setErro]             = useState(null)
 
   function mostrarErro(chave) { setErro({ id: Date.now(), mensagem: ERROS[chave] }) }
@@ -84,7 +85,9 @@ export default function App() {
             setTela('temas')
             return
           }
-        } catch {}
+        } catch {
+          localStorage.removeItem(cacheKey)
+        }
       }
     }
 
@@ -106,6 +109,7 @@ export default function App() {
         return
       }
       setTemas(dados.temas)
+      setChecagens({})
       localStorage.setItem(cacheKey, JSON.stringify({ temas: dados.temas, ts: Date.now() }))
       setTela('temas')
     } catch {
@@ -179,7 +183,7 @@ export default function App() {
           <div>
             <div className="flex items-center gap-3">
               <img src="/milo_logo.png" alt="Milo" className="h-11 w-auto rounded-xl" />
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-100">Milo</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-zinc-100">Milo - Agente de criação de roteiros</h1>
             </div>
             <p className="text-zinc-500 mt-1 text-sm">Gerador de roteiros para vídeos curtos</p>
           </div>
@@ -251,6 +255,9 @@ export default function App() {
                 </button>
                 <TemaCards
                   temas={temas}
+                  editoria={editoria}
+                  checagens={checagens}
+                  onChecagem={setChecagens}
                   onEscolher={escolherTema}
                   onBuscarNovos={() => sugerirTemas(true)}
                   onSalvar={() => carregarSugestoesSalvas()}

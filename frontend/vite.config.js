@@ -9,8 +9,11 @@ export default defineConfig({
     proxy: {
       '/sugerir-temas': 'http://localhost:5000',
       '/gerar-roteiro':  'http://localhost:5000',
+      '/checar-fatos':   'http://localhost:5000',
       '/decidir':        'http://localhost:5000',
       '/votar-tema':         'http://localhost:5000',
+      '/votar-sugestao':     'http://localhost:5000',
+      '/sugestoes-salvas':   'http://localhost:5000',
       '/historico':          'http://localhost:5000',
       '/contexto-agente':    'http://localhost:5000',
     },
