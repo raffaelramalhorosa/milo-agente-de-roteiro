@@ -2,31 +2,71 @@ import { useState } from 'react'
 
 const POR_PAGINA = 8
 
+const FILTROS = [
+  { id: null,                   label: 'Todas' },
+  { id: 'historias_americanas', label: 'Histórias Americanas' },
+  { id: 'ia_empreendedorismo',  label: 'IA & Empreendedorismo' },
+  { id: 'insucessos_vc',        label: 'Insucessos de VC' },
+]
+
+const LABEL_EDITORIA = {
+  historias_americanas: 'Histórias Americanas',
+  ia_empreendedorismo:  'IA & Empreendedorismo',
+  insucessos_vc:        'Insucessos de VC',
+}
+
 export default function Historico({ historico, onVerRoteiro }) {
   const [pagina, setPagina] = useState(0)
-  const itens = [...historico].reverse()
+  const [filtro, setFiltro] = useState(null)
+
+  function mudarFiltro(id) {
+    setFiltro(id)
+    setPagina(0)
+  }
+
+  const itens = [...historico]
+    .reverse()
+    .filter(i => !filtro || (i.editoria ?? 'historias_americanas') === filtro)
+
   const totalPaginas = Math.ceil(itens.length / POR_PAGINA)
-  const pagAtual = itens.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA)
+  const pagAtual     = itens.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA)
 
   return (
     <div className="animate-fade-in">
-      <p className="text-xs uppercase tracking-widest text-zinc-500 mb-5">
-        Histórico
+      <div className="flex items-baseline gap-2 mb-5">
+        <p className="text-xs uppercase tracking-widest text-zinc-500">Histórico</p>
         {itens.length > 0 && (
-          <span className="ml-2 normal-case text-zinc-700">({itens.length} roteiros)</span>
+          <span className="text-zinc-700 text-xs">({itens.length} roteiros)</span>
         )}
-      </p>
+      </div>
+
+      {/* Filtros por editoria */}
+      <div className="flex flex-wrap gap-1.5 mb-5">
+        {FILTROS.map(({ id, label }) => (
+          <button
+            key={String(id)}
+            onClick={() => mudarFiltro(id)}
+            className={`text-xs px-3 py-1 rounded-full border transition-colors
+              ${filtro === id
+                ? 'border-accent text-accent bg-zinc-800'
+                : 'border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       {itens.length === 0 ? (
-        <p className="text-zinc-600 text-sm">Nenhum roteiro gerado ainda.</p>
+        <p className="text-zinc-600 text-sm">Nenhum roteiro encontrado.</p>
       ) : (
         <>
           <div className="flex flex-col gap-2">
             {pagAtual.map(item => {
-              const motivos = [...(item.motivos || [])]
+              const motivos  = [...(item.motivos || [])]
               if (item.motivo_outro) motivos.push(item.motivo_outro)
-              const data = new Date(item.data).toLocaleString('pt-BR')
+              const data     = new Date(item.data).toLocaleString('pt-BR')
               const aprovado = item.decisao === 'aprovado'
+              const labelEd  = LABEL_EDITORIA[item.editoria ?? 'historias_americanas']
 
               return (
                 <button
@@ -47,7 +87,10 @@ export default function Historico({ historico, onVerRoteiro }) {
                   <p className="text-xs text-zinc-600">
                     {motivos.length ? motivos.join(' · ') : 'Sem motivos registrados'}
                   </p>
-                  <p className="text-xs text-zinc-700 mt-1">{data}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-zinc-700">{data}</p>
+                    <p className="text-xs text-zinc-600">{labelEd}</p>
+                  </div>
                   <p className="text-xs text-accent mt-2">Ver roteiro →</p>
                 </button>
               )

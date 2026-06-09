@@ -9,6 +9,12 @@ import Modal from './components/Modal'
 import PainelConfig from './components/PainelConfig'
 import ErrorToast from './components/ErrorToast'
 
+const EDITORIAS_UI = [
+  { id: 'historias_americanas', label: 'Histórias Americanas',  descricao: 'Empreendedor comum que venceu na raça, sem VC.' },
+  { id: 'ia_empreendedorismo',  label: 'IA & Empreendedorismo', descricao: 'Fundadores usando IA para construir negócios.' },
+  { id: 'insucessos_vc',        label: 'Insucessos de VC',      descricao: 'Startups que receberam muito dinheiro e falharam.' },
+]
+
 const ERROS = {
   semConexao:   'Não foi possível conectar ao servidor. Verifique se ele está rodando.',
   rateLimit:    'O Milo está sobrecarregado. Aguarde alguns segundos e tente de novo.',
@@ -43,6 +49,7 @@ export default function App() {
   const [menuAberto, setMenu]       = useState(false)
   const [contexto, setContexto]     = useState(carregarContextoSalvo)
   const [sugestoesSalvas, setSalvas] = useState([])
+  const [editoria, setEditoria]     = useState(null)
   const [erro, setErro]             = useState(null)
 
   function mostrarErro(chave) { setErro({ id: Date.now(), mensagem: ERROS[chave] }) }
@@ -85,7 +92,7 @@ export default function App() {
       const resp  = await fetch('/sugerir-temas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contexto_temas: contexto.temas || null }),
+        body: JSON.stringify({ editoria, contexto_temas: contexto.temas || null }),
       })
       const dados = await resp.json()
       if (!resp.ok) {
@@ -112,6 +119,7 @@ export default function App() {
         body: JSON.stringify({
           titulo:           tema.titulo,
           resumo:           tema.resumo,
+          editoria,
           contexto_jargoes: contexto.jargoes  || null,
           contexto_roteiro: contexto.roteiro  || null,
         }),
@@ -140,6 +148,7 @@ export default function App() {
           resumo_tema: temaSelecionado.resumo,
           roteiro,
           aprovado,
+          editoria,
           motivos,
           motivo_outro: motivoOutro,
         }),
@@ -199,9 +208,31 @@ export default function App() {
         {aba === 'gerador' && (
           <>
             {tela === 'inicial' && (
-              <button className="btn-primary" onClick={() => sugerirTemas()}>
-                Sugerir temas
-              </button>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-zinc-500 mb-4">
+                  Escolha a editoria
+                </p>
+                <div className="flex flex-col gap-2 mb-6">
+                  {EDITORIAS_UI.map(({ id, label, descricao }) => (
+                    <button
+                      key={id}
+                      onClick={() => setEditoria(id)}
+                      className={`card px-5 py-4 text-left transition-colors w-full
+                        ${editoria === id
+                          ? 'border-accent bg-zinc-800'
+                          : 'hover:border-zinc-600 hover:bg-zinc-800/50'}`}
+                    >
+                      <p className="text-sm font-semibold text-zinc-200">{label}</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">{descricao}</p>
+                    </button>
+                  ))}
+                </div>
+                {editoria && (
+                  <button className="btn-primary" onClick={() => sugerirTemas()}>
+                    Sugerir temas
+                  </button>
+                )}
+              </div>
             )}
 
             {tela === 'carregandoTemas'   && <Spinner textos={TEXTOS_TEMAS} />}

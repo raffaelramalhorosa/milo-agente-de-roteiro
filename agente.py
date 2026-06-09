@@ -10,6 +10,21 @@ MODELO_LEVE = "claude-haiku-4-5-20251001"  # usado em tarefas sem web search
 HISTORICO_PATH = "historico.json"
 N_EXEMPLOS = 3  # quantos aceitos/recusados realimentar no prompt
 
+EDITORIAS = {
+    "historias_americanas": {
+        "label": "Histórias Americanas",
+        "arquivo": "rawData/editoria_historias_americanas.md",
+    },
+    "ia_empreendedorismo": {
+        "label": "IA & Empreendedorismo",
+        "arquivo": "rawData/editoria_ia.md",
+    },
+    "insucessos_vc": {
+        "label": "Insucessos de VC",
+        "arquivo": "rawData/editoria_insucessos_vc.md",
+    },
+}
+
 
 def ler_arquivo(caminho):
     try:
@@ -34,10 +49,14 @@ def salvar_historico(entrada):
         json.dump(historico, f, ensure_ascii=False, indent=2)
 
 
-def _montar_exemplos_feedback():
+def _montar_exemplos_feedback(editoria="historias_americanas"):
     historico = ler_historico()
-    aceitos = [e for e in historico if e["decisao"] == "aprovado"][-N_EXEMPLOS:]
-    recusados = [e for e in historico if e["decisao"] == "recusado"][-N_EXEMPLOS:]
+    # filtra pelo campo editoria; registros antigos sem campo são tratados como historias_americanas
+    def _mesma_editoria(e):
+        return e.get("editoria", "historias_americanas") == editoria
+
+    aceitos   = [e for e in historico if e["decisao"] == "aprovado"  and _mesma_editoria(e)][-N_EXEMPLOS:]
+    recusados = [e for e in historico if e["decisao"] == "recusado"  and _mesma_editoria(e)][-N_EXEMPLOS:]
 
     partes = []
 
@@ -66,9 +85,10 @@ def _montar_exemplos_feedback():
     return "\n\n".join(partes) if partes else "(ainda sem histórico de feedback)"
 
 
-def sugerir_temas(contexto_temas=None):
+def sugerir_temas(editoria="historias_americanas", contexto_temas=None):
     """Busca na web e retorna lista de 3 temas como objetos {titulo, resumo}."""
-    tipos_de_conteudo    = contexto_temas or ler_arquivo("rawData/editoria_historias_americanas.md")
+    arquivo_editoria  = EDITORIAS.get(editoria, EDITORIAS["historias_americanas"])["arquivo"]
+    tipos_de_conteudo = contexto_temas or ler_arquivo(arquivo_editoria)
     historias_usadas     = ler_arquivo("rawData/historias_coletadas.md")
     sugestoes_salvas     = ler_arquivo("rawData/sugestoes_salvas.md")
     sugestoes_descartadas = ler_arquivo("rawData/sugestoes_descartadas.md")
@@ -124,13 +144,19 @@ TAREFA:
     return json.loads(texto[inicio:fim])
 
 
-def escrever_roteiro(tema, resumo_tema, contexto_jargoes=None, contexto_roteiro=None):
+def escrever_roteiro(tema, resumo_tema, editoria="historias_americanas", contexto_jargoes=None, contexto_roteiro=None):
     """Escreve o roteiro completo para o tema escolhido, realimentado pelo histórico."""
-    estilo_de_fala = contexto_jargoes or ler_arquivo("rawData/estilo_de_fala.md")
-    estrutura      = contexto_roteiro or ler_arquivo("rawData/estrutura_roteiro.md")
-    exemplos_feedback = _montar_exemplos_feedback()
+    estilo_de_fala    = contexto_jargoes or ler_arquivo("rawData/estilo_de_fala.md")
+    estrutura         = contexto_roteiro or ler_arquivo("rawData/estrutura_roteiro.md")
+    exemplos_feedback = _montar_exemplos_feedback(editoria)
+
+    arquivo_editoria   = EDITORIAS.get(editoria, EDITORIAS["historias_americanas"])["arquivo"]
+    criterios_editoria = ler_arquivo(arquivo_editoria)
 
     system_prompt = f"""Você é um agente que escreve roteiros para vídeos curtos de Instagram.
+
+EDITORIA ATIVA (ângulo e critérios que o roteiro deve seguir):
+{criterios_editoria}
 
 ESTILO DE FALA da pessoa (siga sempre, use os jargões dela):
 {estilo_de_fala}

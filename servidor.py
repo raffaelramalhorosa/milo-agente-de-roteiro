@@ -17,6 +17,7 @@ def rota_sugerir_temas():
     dados = request.get_json(silent=True) or {}
     try:
         temas = sugerir_temas(
+            editoria=dados.get("editoria", "historias_americanas"),
             contexto_temas=dados.get("contexto_temas") or None,
         )
         return jsonify({"temas": temas})
@@ -33,6 +34,7 @@ def rota_gerar_roteiro():
         roteiro = escrever_roteiro(
             dados["titulo"],
             dados["resumo"],
+            editoria=dados.get("editoria", "historias_americanas"),
             contexto_jargoes=dados.get("contexto_jargoes") or None,
             contexto_roteiro=dados.get("contexto_roteiro") or None,
         )
@@ -51,6 +53,7 @@ def rota_decidir():
     entrada = {
         "id": str(uuid.uuid4()),
         "data": datetime.now().isoformat(),
+        "editoria": dados.get("editoria", "historias_americanas"),
         "tema": dados["tema"],
         "resumo_tema": dados.get("resumo_tema", ""),
         "roteiro": dados["roteiro"],
